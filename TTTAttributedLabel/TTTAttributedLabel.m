@@ -367,6 +367,7 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
 
     self.textInsets = UIEdgeInsetsZero;
     self.lineHeightMultiple = 1.0f;
+    _lastTouchLocation = CGPointMake(-1.f, -1.f);
 
     self.links = [NSArray array];
 
@@ -1420,6 +1421,7 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
 {
     UITouch *touch = [touches anyObject];
 
+    _lastTouchLocation = [touch locationInView:self];
     self.activeLink = [self linkAtPoint:[touch locationInView:self]];
 
     if (!self.activeLink) {
@@ -1433,7 +1435,8 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
     if (self.activeLink) {
         UITouch *touch = [touches anyObject];
 
-        if (self.activeLink != [self linkAtPoint:[touch locationInView:self]]) {
+        _lastTouchLocation = [touch locationInView:self];
+        if (self.activeLink != [self linkAtPoint:self.lastTouchLocation]) {
             self.activeLink = nil;
         }
     } else {
@@ -1447,6 +1450,7 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
     if (self.activeLink) {
         NSTextCheckingResult *result = self.activeLink;
         self.activeLink = nil;
+        _lastTouchLocation = CGPointMake(-1.f, -1.f);
 
         switch (result.resultType) {
             case NSTextCheckingTypeLink:
@@ -1499,6 +1503,7 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
 {
     if (self.activeLink) {
         self.activeLink = nil;
+        _lastTouchLocation = CGPointMake(-1.f, -1.f);
     } else {
         [super touchesCancelled:touches withEvent:event];
     }

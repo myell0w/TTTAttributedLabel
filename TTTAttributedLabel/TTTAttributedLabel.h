@@ -369,6 +369,15 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
 - (void)addLinkToTransitInformation:(NSDictionary *)components
                           withRange:(NSRange)range;
 
+///-------------------
+/// @name Detecting links
+///-------------------
+
+- (NSTextCheckingResult *)linkAtPoint:(CGPoint)p;
+
+/** The touch location is only set, while the user touches the label. */
+@property (nonatomic, readonly) CGPoint lastTouchLocation;
+
 @end
 
 /**
