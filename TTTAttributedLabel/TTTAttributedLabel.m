@@ -1370,34 +1370,6 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
     return [self sizeThatFits:[super intrinsicContentSize]];
 }
 
-#if __IPHONE_OS_VERSION_MAX_ALLOWED >= 70000
-- (void)tintColorDidChange {
-    if (!self.inactiveLinkAttributes || [self.inactiveLinkAttributes count] == 0) {
-        return;
-    }
-
-    BOOL isInactive = (self.tintAdjustmentMode == UIViewTintAdjustmentModeDimmed);
-
-    NSDictionary *attributesToRemove = isInactive ? self.linkAttributes : self.inactiveLinkAttributes;
-    NSDictionary *attributesToAdd = isInactive ? self.inactiveLinkAttributes : self.linkAttributes;
-
-    NSMutableAttributedString *mutableAttributedString = [self.attributedText mutableCopy];
-    for (NSTextCheckingResult *result in self.links) {
-        [attributesToRemove enumerateKeysAndObjectsUsingBlock:^(NSString *name, __unused id value, __unused BOOL *stop) {
-            [mutableAttributedString removeAttribute:name range:result.range];
-        }];
-
-        if (attributesToAdd) {
-            [mutableAttributedString addAttributes:attributesToAdd range:result.range];
-        }
-    }
-
-    self.attributedText = mutableAttributedString;
-
-    [self setNeedsDisplay];
-}
-#endif
-
 - (UIView *)hitTest:(CGPoint)point
           withEvent:(UIEvent *)event
 {
