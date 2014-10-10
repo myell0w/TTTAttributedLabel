@@ -459,4 +459,77 @@ didSelectLinkWithTransitInformation:(NSDictionary *)components;
 - (void)attributedLabel:(TTTAttributedLabel *)label
 didSelectLinkWithTextCheckingResult:(NSTextCheckingResult *)result;
 
+///-----------------------------------
+/// @name Responding to Link Longpress
+///-----------------------------------
+
+/**
+ Tells the delegate that the user did longpress a link to a URL.
+
+ @param label The label whose link was longpressed.
+ @param url The URL for the selected link.
+ */
+- (void)attributedLabel:(TTTAttributedLabel *)label
+didLongPressOnLinkWithURL:(NSURL *)url;
+
+/**
+ Tells the delegate that the user did longpress a link to an address.
+
+ @param label The label whose link was longpressed.
+ @param addressComponents The components of the address for the selected link.
+ */
+- (void)attributedLabel:(TTTAttributedLabel *)label
+didLongPressOnLinkWithAddress:(NSDictionary *)addressComponents;
+
+/**
+ Tells the delegate that the user did longpress a link to a phone number.
+
+ @param label The label whose link was longpressed.
+ @param phoneNumber The phone number for the selected link.
+ */
+- (void)attributedLabel:(TTTAttributedLabel *)label
+didLongPressOnLinkWithPhoneNumber:(NSString *)phoneNumber;
+
+/**
+ Tells the delegate that the user did select a link to a date.
+
+ @param label The label whose link was selected.
+ @param date The datefor the selected link.
+ */
+- (void)attributedLabel:(TTTAttributedLabel *)label
+didLongPressOnLinkWithDate:(NSDate *)date;
+
+/**
+ Tells the delegate that the user did longpress a link to a date with a time zone and duration.
+
+ @param label The label whose link was selected.
+ @param date The date for the selected link.
+ @param timeZone The time zone of the date for the selected link.
+ @param duration The duration, in seconds from the date for the selected link.
+ */
+- (void)attributedLabel:(TTTAttributedLabel *)label
+didLongPressOnLinkWithDate:(NSDate *)date
+               timeZone:(NSTimeZone *)timeZone
+               duration:(NSTimeInterval)duration;
+
+/**
+ Tells the delegate that the user did longpress a link to transit information
+
+ @param label The label whose link was longpressed.
+ @param components A dictionary containing the transit components. The currently supported keys are `NSTextCheckingAirlineKey` and `NSTextCheckingFlightKey`.
+ */
+- (void)attributedLabel:(TTTAttributedLabel *)label
+didLongPressOnLinkWithTransitInformation:(NSDictionary *)components;
+
+/**
+ Tells the delegate that the user did longpress a link to a text checking result.
+
+ @discussion This method is called if no other delegate method was called, which can occur by either now implementing the method in `TTTAttributedLabelDelegate` corresponding to a particular link, or the link was added by passing an instance of a custom `NSTextCheckingResult` subclass into `-addLinkWithTextCheckingResult:`.
+
+ @param label The label whose link was longpressed.
+ @param result The custom text checking result.
+ */
+- (void)attributedLabel:(TTTAttributedLabel *)label
+didLongPressOnLinkWithTextCheckingResult:(NSTextCheckingResult *)result;
+
 @end
