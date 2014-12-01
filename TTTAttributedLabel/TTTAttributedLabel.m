@@ -76,32 +76,32 @@ typedef UILineBreakMode TTTLineBreakMode;
 static inline CTTextAlignment CTTextAlignmentFromTTTTextAlignment(TTTTextAlignment alignment) {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
     switch (alignment) {
-		case NSTextAlignmentLeft: return kCTLeftTextAlignment;
-		case NSTextAlignmentCenter: return kCTCenterTextAlignment;
-		case NSTextAlignmentRight: return kCTRightTextAlignment;
-		default: return kCTNaturalTextAlignment;
-	}
+        case NSTextAlignmentLeft: return kCTLeftTextAlignment;
+        case NSTextAlignmentCenter: return kCTCenterTextAlignment;
+        case NSTextAlignmentRight: return kCTRightTextAlignment;
+        default: return kCTNaturalTextAlignment;
+    }
 #else
     switch (alignment) {
-		case UITextAlignmentLeft: return kCTLeftTextAlignment;
-		case UITextAlignmentCenter: return kCTCenterTextAlignment;
-		case UITextAlignmentRight: return kCTRightTextAlignment;
-		default: return kCTNaturalTextAlignment;
-	}
+        case UITextAlignmentLeft: return kCTLeftTextAlignment;
+        case UITextAlignmentCenter: return kCTCenterTextAlignment;
+        case UITextAlignmentRight: return kCTRightTextAlignment;
+        default: return kCTNaturalTextAlignment;
+    }
 #endif
 }
 
 static inline CTLineBreakMode CTLineBreakModeFromTTTLineBreakMode(TTTLineBreakMode lineBreakMode) {
 #if __IPHONE_OS_VERSION_MAX_ALLOWED >= 60000
-	switch (lineBreakMode) {
-		case NSLineBreakByWordWrapping: return kCTLineBreakByWordWrapping;
-		case NSLineBreakByCharWrapping: return kCTLineBreakByCharWrapping;
-		case NSLineBreakByClipping: return kCTLineBreakByClipping;
-		case NSLineBreakByTruncatingHead: return kCTLineBreakByTruncatingHead;
-		case NSLineBreakByTruncatingTail: return kCTLineBreakByTruncatingTail;
-		case NSLineBreakByTruncatingMiddle: return kCTLineBreakByTruncatingMiddle;
-		default: return 0;
-	}
+    switch (lineBreakMode) {
+        case NSLineBreakByWordWrapping: return kCTLineBreakByWordWrapping;
+        case NSLineBreakByCharWrapping: return kCTLineBreakByCharWrapping;
+        case NSLineBreakByClipping: return kCTLineBreakByClipping;
+        case NSLineBreakByTruncatingHead: return kCTLineBreakByTruncatingHead;
+        case NSLineBreakByTruncatingTail: return kCTLineBreakByTruncatingTail;
+        case NSLineBreakByTruncatingMiddle: return kCTLineBreakByTruncatingMiddle;
+        default: return 0;
+    }
 #else
     return CTLineBreakModeFromUILineBreakMode(lineBreakMode);
 #endif
@@ -175,6 +175,7 @@ static inline NSDictionary * NSAttributedStringAttributesFromLabel(TTTAttributed
         paragraphStyle.maximumLineHeight = label.maximumLineHeight > 0 ? label.maximumLineHeight : label.font.lineHeight * label.lineHeightMultiple;
         paragraphStyle.lineHeightMultiple = label.lineHeightMultiple;
         paragraphStyle.firstLineHeadIndent = label.firstLineIndent;
+        paragraphStyle.headIndent = paragraphStyle.firstLineHeadIndent;
 
         if (label.numberOfLines == 1) {
             paragraphStyle.lineBreakMode = label.lineBreakMode;
@@ -302,7 +303,7 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
 @interface TTTAttributedLabel ()
 @property (readwrite, nonatomic, copy) NSAttributedString *inactiveAttributedText;
 @property (readwrite, nonatomic, copy) NSAttributedString *renderedAttributedText;
-@property (readwrite, atomic, strong) NSDataDetector *dataDetector;
+@property (readwrite, nonatomic, strong) NSDataDetector *dataDetector;
 @property (readwrite, nonatomic, strong) NSArray *links;
 @property (readwrite, nonatomic, strong) NSTextCheckingResult *activeLink;
 @property (readwrite, nonatomic, strong) NSArray *accessibilityElements;
@@ -371,8 +372,6 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     _lastTouchLocation = CGPointMake(-1.f, -1.f);
 
     self.links = [NSArray array];
-
-    self.linkBackgroundEdgeInset = UIEdgeInsetsMake(0.0f, -1.0f, 0.0f, -1.0f);
 
     NSMutableDictionary *mutableLinkAttributes = [NSMutableDictionary dictionary];
     [mutableLinkAttributes setObject:[NSNumber numberWithBool:YES] forKey:(NSString *)kCTUnderlineStyleAttributeName];
@@ -465,8 +464,6 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
         [self invalidateIntrinsicContentSize];
     }
 #endif
-
-    [super setText:[self.attributedText string]];
 }
 
 - (NSAttributedString *)renderedAttributedText {
@@ -554,10 +551,6 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
 }
 
 - (void)setEnabledTextCheckingTypes:(NSTextCheckingTypes)enabledTextCheckingTypes {
-    if (self.enabledTextCheckingTypes == enabledTextCheckingTypes) {
-        return;
-    }
-    
     _enabledTextCheckingTypes = enabledTextCheckingTypes;
 
     if (self.enabledTextCheckingTypes) {
@@ -633,15 +626,8 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     [self addLinkWithTextCheckingResult:[NSTextCheckingResult transitInformationCheckingResultWithRange:range components:components]];
 }
 
+
 #pragma mark -
-
-- (BOOL)containslinkAtPoint:(CGPoint)point {
-    return [self linkAtPoint:point] != nil;
-}
-
-- (NSTextCheckingResult *)linkAtPoint:(CGPoint)point {
-    return [self linkAtCharacterIndex:[self characterIndexAtPoint:point]];
-}
 
 - (NSTextCheckingResult *)linkAtCharacterIndex:(CFIndex)idx {
     NSEnumerator *enumerator = [self.links reverseObjectEnumerator];
@@ -655,6 +641,12 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     return nil;
 }
 
+- (NSTextCheckingResult *)linkAtPoint:(CGPoint)p {
+    CFIndex idx = [self characterIndexAtPoint:p];
+
+    return [self linkAtCharacterIndex:idx];
+}
+
 - (CFIndex)characterIndexAtPoint:(CGPoint)p {
     if (!CGRectContainsPoint(self.bounds, p)) {
         return NSNotFound;
@@ -664,6 +656,9 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     if (!CGRectContainsPoint(textRect, p)) {
         return NSNotFound;
     }
+
+    // Adjust pen offset for flush depending on text alignment
+    CGFloat flushFactor = TTTFlushFactorForTextAlignment(self.textAlignment);
 
     // Offset tap coordinates by textRect origin to make them relative to the origin of frame
     p = CGPointMake(p.x - textRect.origin.x, p.y - textRect.origin.y);
@@ -694,6 +689,7 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     for (CFIndex lineIndex = 0; lineIndex < numberOfLines; lineIndex++) {
         CGPoint lineOrigin = lineOrigins[lineIndex];
         CTLineRef line = CFArrayGetValueAtIndex(lines, lineIndex);
+        CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush(line, flushFactor, textRect.size.width);
 
         // Get bounding information of line
         CGFloat ascent = 0.0f, descent = 0.0f, leading = 0.0f;
@@ -708,9 +704,9 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
         // Check if the point is within this line vertically
         if (p.y >= yMin) {
             // Check if the point is within this line horizontally
-            if (p.x >= lineOrigin.x && p.x <= lineOrigin.x + width) {
+            if (p.x >= penOffset && p.x <= penOffset + width) {
                 // Convert CT coordinates to line-relative coordinates
-                CGPoint relativePoint = CGPointMake(p.x - lineOrigin.x, p.y - lineOrigin.y);
+                CGPoint relativePoint = CGPointMake(p.x - penOffset, p.y - lineOrigin.y);
                 idx = CTLineGetStringIndexForPosition(line, relativePoint);
                 break;
             }
@@ -763,6 +759,8 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
 
     for (CFIndex lineIndex = 0; lineIndex < numberOfLines; lineIndex++) {
         CGPoint lineOrigin = lineOrigins[lineIndex];
+        lineOrigin = CGPointMake(CGFloat_ceil(lineOrigin.x), CGFloat_ceil(lineOrigin.y));
+
         CGContextSetTextPosition(c, lineOrigin.x, lineOrigin.y);
         CTLineRef line = CFArrayGetValueAtIndex(lines, lineIndex);
 
@@ -802,24 +800,18 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                         break;
                 }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-                NSAttributedString *attributedTruncationString = self.attributedTruncationToken;
-                if (!attributedTruncationString) {
-                    NSString *truncationTokenString = self.truncationTokenString;
-                    if (!truncationTokenString) {
-                        truncationTokenString = @"\u2026"; // Unicode Character 'HORIZONTAL ELLIPSIS' (U+2026)
-                    }
-                    
-                    NSDictionary *truncationTokenStringAttributes = self.truncationTokenStringAttributes;
-                    if (!truncationTokenStringAttributes) {
-                        truncationTokenStringAttributes = [attributedString attributesAtIndex:(NSUInteger)truncationAttributePosition effectiveRange:NULL];
-                    }
-                    
-                    attributedTruncationString = [[NSAttributedString alloc] initWithString:truncationTokenString attributes:truncationTokenStringAttributes];
+                NSString *truncationTokenString = self.truncationTokenString;
+                if (!truncationTokenString) {
+                    truncationTokenString = @"\u2026"; // Unicode Character 'HORIZONTAL ELLIPSIS' (U+2026)
                 }
-                CTLineRef truncationToken = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)attributedTruncationString);
-#pragma clang diagnostic pop
+
+                NSDictionary *truncationTokenStringAttributes = self.truncationTokenStringAttributes;
+                if (!truncationTokenStringAttributes) {
+                    truncationTokenStringAttributes = [attributedString attributesAtIndex:(NSUInteger)truncationAttributePosition effectiveRange:NULL];
+                }
+
+                NSAttributedString *attributedTokenString = [[NSAttributedString alloc] initWithString:truncationTokenString attributes:truncationTokenStringAttributes];
+                CTLineRef truncationToken = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)attributedTokenString);
 
                 // Append truncationToken to the string
                 // because if string isn't too long, CT wont add the truncationToken on it's own
@@ -832,7 +824,7 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                         [truncationString deleteCharactersInRange:NSMakeRange((NSUInteger)(lastLineRange.length - 1), 1)];
                     }
                 }
-                [truncationString appendAttributedString:attributedTruncationString];
+                [truncationString appendAttributedString:attributedTokenString];
                 CTLineRef truncationLine = CTLineCreateWithAttributedString((__bridge CFAttributedStringRef)truncationString);
 
                 // Truncate the line in case it is too long.
@@ -846,24 +838,18 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                 CGContextSetTextPosition(c, penOffset, lineOrigin.y - descent - self.font.descender);
 
                 CTLineDraw(truncatedLine, c);
-                
-                NSRange linkRange;
-                if ([attributedTruncationString attribute:NSLinkAttributeName atIndex:0 effectiveRange:&linkRange]) {
-                    NSRange tokenRange = [truncationString.string rangeOfString:attributedTruncationString.string];
-                    NSRange tokenLinkRange = NSMakeRange((NSUInteger)(lastLineRange.location+lastLineRange.length)-tokenRange.length, (NSUInteger)tokenRange.length);
-                    
-                    [self addLinkToURL:[attributedTruncationString attribute:NSLinkAttributeName atIndex:0 effectiveRange:&linkRange] withRange:tokenLinkRange];
-                }
 
                 CFRelease(truncatedLine);
                 CFRelease(truncationLine);
                 CFRelease(truncationToken);
             } else {
-                CGContextSetTextPosition(c, lineOrigin.x, lineOrigin.y - descent - self.font.descender);
+                CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush(line, flushFactor, rect.size.width);
+                CGContextSetTextPosition(c, penOffset, lineOrigin.y - descent - self.font.descender);
                 CTLineDraw(line, c);
             }
         } else {
-            CGContextSetTextPosition(c, lineOrigin.x, lineOrigin.y - descent - self.font.descender);
+            CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush(line, flushFactor, rect.size.width);
+            CGContextSetTextPosition(c, penOffset, lineOrigin.y - descent - self.font.descender);
             CTLineDraw(line, c);
         }
     }
@@ -882,6 +868,9 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     CGPoint origins[[lines count]];
     CTFrameGetLineOrigins(frame, CFRangeMake(0, 0), origins);
 
+    // Adjust pen offset for flush depending on text alignment
+    CGFloat flushFactor = TTTFlushFactorForTextAlignment(self.textAlignment);
+
     // Compensate for y-offset of text rect from vertical positioning
     CGFloat yOffset = self.textInsets.top - [self textRectForBounds:self.bounds limitedToNumberOfLines:self.numberOfLines].origin.y;
 
@@ -890,6 +879,9 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
         CGFloat ascent = 0.0f, descent = 0.0f, leading = 0.0f;
         CGFloat width = (CGFloat)CTLineGetTypographicBounds((__bridge CTLineRef)line, &ascent, &descent, &leading) ;
         CGRect lineBounds = CGRectMake(rect.origin.x, rect.origin.y, width, ascent + descent + leading) ;
+
+        CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush((__bridge CTLineRef)line, flushFactor, rect.size.width);
+
         lineBounds.origin.x += origins[lineIndex].x;
         lineBounds.origin.y += origins[lineIndex].y;
 
@@ -920,7 +912,7 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                         break;
                 }
 
-                runBounds.origin.x = origins[lineIndex].x + rect.origin.x + xOffset - fillPadding.left - rect.origin.x;
+                runBounds.origin.x = penOffset + rect.origin.x + xOffset - fillPadding.left - rect.origin.x;
                 runBounds.origin.y = origins[lineIndex].y + rect.origin.y + yOffset - fillPadding.bottom - rect.origin.y;
                 runBounds.origin.y -= runDescent;
 
@@ -929,7 +921,7 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                     runBounds.size.width = CGRectGetWidth(lineBounds);
                 }
 
-                CGPathRef path = [[UIBezierPath bezierPathWithRoundedRect:CGRectInset(UIEdgeInsetsInsetRect(runBounds, self.linkBackgroundEdgeInset), lineWidth, lineWidth) cornerRadius:cornerRadius] CGPath];
+                CGPathRef path = [[UIBezierPath bezierPathWithRoundedRect:CGRectInset(CGRectInset(runBounds, -1.0f, 0.0f), lineWidth, lineWidth) cornerRadius:cornerRadius] CGPath];
 
                 CGContextSetLineJoin(c, kCGLineJoinRound);
 
@@ -959,6 +951,9 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
     CGPoint origins[[lines count]];
     CTFrameGetLineOrigins(frame, CFRangeMake(0, 0), origins);
 
+    // Adjust pen offset for flush depending on text alignment
+    CGFloat flushFactor = TTTFlushFactorForTextAlignment(self.textAlignment);
+
     CFIndex lineIndex = 0;
     for (id line in lines) {
         CGFloat ascent = 0.0f, descent = 0.0f, leading = 0.0f;
@@ -966,6 +961,8 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
         CGRect lineBounds = CGRectMake(0.0f, 0.0f, width, ascent + descent + leading) ;
         lineBounds.origin.x = origins[lineIndex].x;
         lineBounds.origin.y = origins[lineIndex].y;
+
+        CGFloat penOffset = (CGFloat)CTLineGetPenOffsetForFlush((__bridge CTLineRef)line, flushFactor, rect.size.width);
 
         for (id glyphRun in (__bridge NSArray *)CTLineGetGlyphRuns((__bridge CTLineRef)line)) {
             NSDictionary *attributes = (__bridge NSDictionary *)CTRunGetAttributes((__bridge CTRunRef) glyphRun);
@@ -990,7 +987,7 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                         xOffset = CTLineGetOffsetForStringIndex((__bridge CTLineRef)line, glyphRange.location, NULL);
                         break;
                 }
-                runBounds.origin.x = origins[lineIndex].x + xOffset;
+                runBounds.origin.x = penOffset + xOffset;
                 runBounds.origin.y = origins[lineIndex].y;
                 runBounds.origin.y -= runDescent;
 
@@ -999,16 +996,16 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
                     runBounds.size.width = CGRectGetWidth(lineBounds);
                 }
 
-				switch (superscriptStyle) {
-					case 1:
-						runBounds.origin.y -= runAscent * 0.47f;
-						break;
-					case -1:
-						runBounds.origin.y += runAscent * 0.25f;
-						break;
-					default:
-						break;
-				}
+                switch (superscriptStyle) {
+                    case 1:
+                        runBounds.origin.y -= runAscent * 0.47f;
+                        break;
+                    case -1:
+                        runBounds.origin.y += runAscent * 0.25f;
+                        break;
+                    default:
+                        break;
+                }
 
                 // Use text color, or default to black
                 id color = [attributes objectForKey:(id)kCTForegroundColorAttributeName];
@@ -1085,6 +1082,8 @@ static inline CGSize CTFramesetterSuggestFrameSizeForAttributedStringWithConstra
         }];
     }
 #endif
+
+    [super setText:[self.attributedText string]];
 }
 
 - (void)setText:(id)text
@@ -1139,12 +1138,12 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
 
 // Fixes crash when loading from a UIStoryboard
 - (UIColor *)textColor {
-	UIColor *color = [super textColor];
-	if (!color) {
-		color = [UIColor blackColor];
-	}
+    UIColor *color = [super textColor];
+    if (!color) {
+        color = [UIColor blackColor];
+    }
 
-	return color;
+    return color;
 }
 
 - (void)setTextColor:(UIColor *)textColor {
@@ -1169,13 +1168,13 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
     CGRect textRect = bounds;
 
     // Calculate height with a minimum of double the font pointSize, to ensure that CTFramesetterSuggestFrameSizeWithConstraints doesn't return CGSizeZero, as it would if textRect height is insufficient.
-    textRect.size.height = MAX(self.font.lineHeight * MAX(2, numberOfLines), bounds.size.height);
+    textRect.size.height = MAX(self.font.pointSize * 2.0f, bounds.size.height);
 
     // Adjust the text to be in the center vertically, if the text size is smaller than bounds
     CGSize textSize = CTFramesetterSuggestFrameSizeWithConstraints([self framesetter], CFRangeMake(0, (CFIndex)[self.attributedText length]), NULL, textRect.size, NULL);
     textSize = CGSizeMake(CGFloat_ceil(textSize.width), CGFloat_ceil(textSize.height)); // Fix for iOS 4, CTFramesetterSuggestFrameSizeWithConstraints sometimes returns fractional sizes
 
-    if (textSize.height < bounds.size.height) {
+    if (textSize.height < textRect.size.height) {
         CGFloat yOffset = 0.0f;
         switch (self.verticalAlignment) {
             case TTTAttributedLabelVerticalAlignmentCenter:
@@ -1530,13 +1529,7 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
     [coder encodeObject:@(self.lineHeightMultiple) forKey:NSStringFromSelector(@selector(lineHeightMultiple))];
     [coder encodeUIEdgeInsets:self.textInsets forKey:NSStringFromSelector(@selector(textInsets))];
     [coder encodeInteger:self.verticalAlignment forKey:NSStringFromSelector(@selector(verticalAlignment))];
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     [coder encodeObject:self.truncationTokenString forKey:NSStringFromSelector(@selector(truncationTokenString))];
-#pragma clang diagnostic pop
-
-    [coder encodeObject:NSStringFromUIEdgeInsets(self.linkBackgroundEdgeInset) forKey:NSStringFromSelector(@selector(linkBackgroundEdgeInset))];
     [coder encodeObject:self.attributedText forKey:NSStringFromSelector(@selector(attributedText))];
     [coder encodeObject:self.text forKey:NSStringFromSelector(@selector(text))];
 }
@@ -1619,15 +1612,8 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
         self.verticalAlignment = [coder decodeIntegerForKey:NSStringFromSelector(@selector(verticalAlignment))];
     }
 
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
     if ([coder containsValueForKey:NSStringFromSelector(@selector(truncationTokenString))]) {
         self.truncationTokenString = [coder decodeObjectForKey:NSStringFromSelector(@selector(truncationTokenString))];
-    }
-#pragma clang diagnostic pop
-
-    if ([coder containsValueForKey:NSStringFromSelector(@selector(linkBackgroundEdgeInset))]) {
-        self.linkBackgroundEdgeInset = UIEdgeInsetsFromString([coder decodeObjectForKey:NSStringFromSelector(@selector(linkBackgroundEdgeInset))]);
     }
 
     if ([coder containsValueForKey:NSStringFromSelector(@selector(attributedText))]) {
@@ -1635,7 +1621,7 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
     } else {
         self.text = super.text;
     }
-    
+
     return self;
 }
 
@@ -1684,7 +1670,7 @@ afterInheritingLabelAttributesAndConfiguringWithBlock:(NSMutableAttributedString
             default:
                 break;
         }
-
+        
         // Fallback to `attributedLabel:didSelectLinkWithTextCheckingResult:` if no other delegate method matched.
         if ([self.delegate respondsToSelector:@selector(attributedLabel:didLongPressOnLinkWithTextCheckingResult:)]) {
             [self.delegate attributedLabel:self didLongPressOnLinkWithTextCheckingResult:result];
